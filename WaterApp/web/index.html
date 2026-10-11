@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart Water Distribution - Neer Nagar</title>
+<style>
+  :root {
+    --bg: #f4f7fa; --card: #ffffff; --text: #1c2733; --muted: #6b7a89; --line: #dde4eb;
+    --blue: #1976d2; --green: #2e9e5b; --amber: #e29a1d; --red: #d64545; --grey: #8a96a3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #121820; --card: #1b232d; --text: #e6ecf2; --muted: #8fa0b1; --line: #2c3743; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: Arial, Helvetica, sans-serif; }
+  header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; background: var(--card); border-bottom: 1px solid var(--line); flex-wrap: wrap; gap: 8px; }
+  header h1 { margin: 0; font-size: 20px; }
+  header small { color: var(--muted); }
+  .live { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--green); margin-right: 6px; }
+  .live.off { background: var(--red); }
+  main { max-width: 1150px; margin: 0 auto; padding: 20px; }
+  h2 { font-size: 16px; margin: 0 0 12px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 18px; }
+  .row { display: grid; gap: 16px; }
+  .cols3 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .cols2 { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
+  .stat .label { color: var(--muted); font-size: 13px; }
+  .stat .value { font-size: 28px; font-weight: bold; margin-top: 4px; }
+  .stat .unit { font-size: 13px; color: var(--muted); font-weight: normal; }
+  .bar { height: 10px; background: var(--line); border-radius: 5px; overflow: hidden; }
+  .bar > div { height: 100%; border-radius: 5px; transition: width .4s; }
+  .res { margin-bottom: 16px; }
+  .res:last-child { margin-bottom: 0; }
+  .res .top { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 14px; }
+  .res .edit { display: flex; gap: 6px; margin-top: 8px; align-items: center; font-size: 13px; color: var(--muted); }
+  input[type=number] { width: 110px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--text); }
+  button { cursor: pointer; border: 1px solid var(--line); background: var(--card); color: var(--text); padding: 6px 12px; border-radius: 6px; font-size: 13px; }
+  button:hover { border-color: var(--blue); }
+  button.primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; color: var(--muted); font-weight: normal; font-size: 12px; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  td { padding: 9px 8px; border-bottom: 1px solid var(--line); }
+  tr:last-child td { border-bottom: none; }
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 12px; font-weight: bold; color: #fff; white-space: nowrap; }
+  .p-CRITICAL { background: var(--red); } .p-HIGH { background: var(--amber); } .p-NORMAL { background: var(--grey); }
+  .s-SUPPLIED { background: var(--green); } .s-LOW { background: var(--amber); }
+  .s-SHORTAGE { background: var(--red); } .s-DISCONNECTED { background: #6a3fb5; }
+  .s-WORKING { background: var(--green); } .s-FAILED { background: var(--red); }
+  .alert { padding: 9px 12px; border-radius: 6px; margin-bottom: 8px; font-size: 14px; border-left: 4px solid; }
+  .alert.danger { background: rgba(214,69,69,.12); border-color: var(--red); }
+  .alert.warn { background: rgba(226,154,29,.14); border-color: var(--amber); }
+  .alert.ok { background: rgba(46,158,91,.12); border-color: var(--green); }
+  .pipes { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .pipe { border: 1px solid var(--line); border-radius: 8px; padding: 10px; font-size: 13px; }
+  .pipe .name { font-weight: bold; }
+  .pipe .ends { color: var(--muted); margin: 3px 0 8px; }
+  .pipe .actions { display: flex; justify-content: space-between; align-items: center; }
+  .prio { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .prio:last-child { border-bottom: none; }
+  .note { color: var(--muted); font-size: 12px; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Smart Water Distribution - Neer Nagar</h1>
+  </div>
+ </header>
+
+<main>
+
+  <!-- Total water numbers -->
+  <div class="row cols3">
+    <div class="card stat"><div class="label">Total available water</div><div class="value" id="tAvail">-</div></div>
+    <div class="card stat"><div class="label">Total allocated</div><div class="value" id="tAlloc">-</div></div>
+    <div class="card stat"><div class="label">Remaining in reservoirs</div><div class="value" id="tRem">-</div></div>
+  </div>
+
+  <!-- Alerts -->
+  <div class="card">
+    <h2>Monitoring and alerts</h2>
+    <div id="alerts"></div>
+  </div>
+
+  <div class="row cols2">
+    <!-- Reservoir levels -->
+    <div class="card">
+      <h2>Reservoir water levels</h2>
+      <div id="reservoirs"></div>
+      <div class="note">Change a reservoir's supply to see the whole distribution update.</div>
+    </div>
+
+    <!-- Priority wise status -->
+    <div class="card">
+      <h2>Priority-wise area status</h2>
+      <div id="priorities"></div>
+      <div class="note">Water is given to CRITICAL areas first, then HIGH, then NORMAL.</div>
+    </div>
+  </div>
+
+  <!-- Area wise allocation -->
+  <div class="card">
+    <h2>Area-wise water allocation</h2>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr>
+          <th>Area</th><th>Priority</th><th>Demand (L)</th><th>Allocated (L)</th>
+          <th>Unmet demand (L)</th><th>Supplied</th><th>Status</th>
+        </tr></thead>
+        <tbody id="areas"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Pipelines -->
+  <div class="card">
+    <h2>Pipeline status</h2>
+    <div class="pipes" id="pipes"></div>
+    <div class="note">Fail a pipeline to simulate a burst. The backend re-checks connectivity (BFS) and re-allocates water straight away.</div>
+  </div>
+
+</main>
+
+<script>
+  function fmt(n) { return Math.round(n).toLocaleString('en-IN'); }
+
+  async function call(url) {
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      draw(data);
+      setLive(true);
+    } catch (e) {
+      setLive(false);
+    }
+  }
+
+  function setLive(ok) {
+    document.getElementById('live').className = ok ? 'live' : 'live off';
+    document.getElementById('liveText').textContent = ok ? 'live - updates every 3 seconds' : 'backend not reachable';
+  }
+
+  function barColor(pct) {
+    if (pct > 50) return 'var(--green)';
+    if (pct > 15) return 'var(--amber)';
+    return 'var(--red)';
+  }
+
+  function draw(d) {
+    // totals
+    document.getElementById('tAvail').innerHTML = fmt(d.totalAvailable) + ' <span class="unit">L</span>';
+    document.getElementById('tAlloc').innerHTML = fmt(d.totalAllocated) + ' <span class="unit">L</span>';
+    document.getElementById('tRem').innerHTML = fmt(d.totalRemaining) + ' <span class="unit">L</span>';
+
+    // alerts
+    let a = '';
+    if (d.alerts.length === 0) {
+      a = '<div class="alert ok">All areas are supplied and all pipelines are working.</div>';
+    }
+    d.alerts.forEach(x => { a += '<div class="alert ' + x.level + '">' + x.text + '</div>'; });
+    document.getElementById('alerts').innerHTML = a;
+
+    // reservoirs
+    let r = '';
+    d.reservoirs.forEach(x => {
+      const pct = x.capacity > 0 ? (x.remaining / x.capacity) * 100 : 0;
+      r += '<div class="res">' +
+        '<div class="top"><b>' + x.name + ' (' + x.id + ')</b><span>' + fmt(x.remaining) + ' / ' + fmt(x.capacity) + ' L left</span></div>' +
+        '<div class="bar"><div style="width:' + pct + '%;background:' + barColor(pct) + '"></div></div>' +
+        '<div class="edit">Daily supply (L): <input type="number" min="0" step="500" id="cap-' + x.id + '" value="' + x.capacity + '">' +
+        '<button onclick="setSupply(\'' + x.id + '\')">Update</button></div>' +
+        '</div>';
+    });
+    // do not wipe what the user is typing
+    const typing = document.activeElement && document.activeElement.id && document.activeElement.id.startsWith('cap-');
+    if (!typing) document.getElementById('reservoirs').innerHTML = r;
+
+    // areas
+    let t = '';
+    d.areas.forEach(x => {
+      const pct = x.demand > 0 ? (x.allocated / x.demand) * 100 : 0;
+      const cls = x.status === 'LOW SUPPLY' ? 'LOW' : x.status;
+      t += '<tr>' +
+        '<td><b>' + x.name + '</b><br><small style="color:var(--muted)">' + x.id + '</small></td>' +
+        '<td><span class="badge p-' + x.priority + '">' + x.priority + '</span></td>' +
+        '<td>' + fmt(x.demand) + '</td>' +
+        '<td>' + fmt(x.allocated) + '</td>' +
+        '<td>' + (x.unmet > 0 ? '<b style="color:var(--red)">' + fmt(x.unmet) + '</b>' : '0') + '</td>' +
+        '<td style="min-width:110px"><div class="bar"><div style="width:' + pct + '%;background:' + barColor(pct) + '"></div></div></td>' +
+        '<td><span class="badge s-' + cls + '">' + x.status + '</span></td>' +
+        '</tr>';
+    });
+    document.getElementById('areas').innerHTML = t;
+
+    // priority wise summary
+    let p = '';
+    ['CRITICAL', 'HIGH', 'NORMAL'].forEach(level => {
+      const list = d.areas.filter(x => x.priority === level);
+      const ok = list.filter(x => x.status === 'SUPPLIED').length;
+      const unmet = list.reduce((s, x) => s + x.unmet, 0);
+      p += '<div class="prio"><span><span class="badge p-' + level + '">' + level + '</span> &nbsp;' + ok + ' of ' + list.length + ' fully supplied</span>' +
+        '<span>' + (unmet > 0 ? '<b style="color:var(--red)">' + fmt(unmet) + ' L unmet</b>' : '<span style="color:var(--green)">no shortage</span>') + '</span></div>';
+    });
+    document.getElementById('priorities').innerHTML = p;
+
+    // pipelines
+    let pp = '';
+    d.pipelines.forEach(x => {
+      const failed = x.status === 'FAILED';
+      pp += '<div class="pipe">' +
+        '<div class="name">' + x.id + '</div>' +
+        '<div class="ends">' + x.from + ' &harr; ' + x.to + '</div>' +
+        '<div class="actions"><span class="badge s-' + x.status + '">' + x.status + '</span>' +
+        '<button onclick="setPipe(\'' + x.id + '\',\'' + (failed ? 'WORKING' : 'FAILED') + '\')">' + (failed ? 'Repair' : 'Fail') + '</button></div>' +
+        '</div>';
+    });
+    document.getElementById('pipes').innerHTML = pp;
+  }
+
+  function setPipe(id, status) { call('/api/pipeline?id=' + id + '&status=' + status); }
+  function setSupply(id) {
+    const v = document.getElementById('cap-' + id).value;
+    call('/api/reservoir?id=' + id + '&capacity=' + v);
+  }
+  function resetDemo() { call('/api/reset'); }
+
+  call('/api/status');
+  setInterval(() => call('/api/status'), 3000);
+</script>
+</body>
+</html>
