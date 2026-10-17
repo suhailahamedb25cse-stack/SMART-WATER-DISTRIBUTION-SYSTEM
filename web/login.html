@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Log in - Smart Water Distribution</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-body">
+
+  <div class="card login-card">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" width="38" height="38" aria-hidden="true">
+        <path d="M12 2C12 2 5 10 5 15a7 7 0 0014 0c0-5-7-13-7-13z" fill="#1976d2"/>
+        <path d="M9 15a3 3 0 003 3" stroke="#ffffff" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+      </svg>
+      <h1>Smart Water Distribution</h1>
+    </div>
+    <p class="sub">Neer Nagar water office - operator login</p>
+
+    <div id="error" class="alert danger hidden"></div>
+
+    <form id="loginForm">
+      <label>Username
+        <input id="username" autocomplete="username" required autofocus>
+      </label>
+      <label>Password
+        <input id="password" type="password" autocomplete="current-password" required>
+      </label>
+      <button type="submit" class="primary" id="loginBtn">Log in</button>
+    </form>
+
+    <p class="foot">For authorised water office staff only.</p>
+  </div>
+
+  <script src="login.js"></script>
+</body>
+</html>

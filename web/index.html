@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Smart Water Distribution - Neer Nagar</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <h1>Smart Water Distribution</h1>
+    <small><span id="dot" class="dot off"></span><span id="dbText">connecting to the server...</span></small>
+  </div>
+  <nav id="nav">
+    <button class="active" data-tab="dashboard">Dashboard</button>
+    <button data-tab="map">Map</button>
+    <button data-tab="reservoirs">Reservoirs</button>
+    <button data-tab="areas">Areas</button>
+    <button data-tab="pipelines">Pipelines</button>
+    <button data-tab="maintenance">Maintenance <span id="queueBadge" class="pos hidden"></span></button>
+    <button data-tab="history">History</button>
+    <button data-tab="account">Account</button>
+  </nav>
+  <div class="user">
+    <span><b id="userName"></b> <span id="userRole" class="role"></span></span>
+    <button id="logoutBtn" class="small">Log out</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- ================= DASHBOARD ================= -->
+  <section id="tab-dashboard" class="tab">
+    <div class="daybar">
+      <span>Simulated day <b id="dayNo">1</b></span>
+      <button id="newDayBtn" class="small op-only">Start next day</button>
+    </div>
+    <div class="grid3">
+      <div class="card stat"><div class="label">Total available water</div><div class="value" id="tAvail">-</div></div>
+      <div class="card stat"><div class="label">Total allocated</div><div class="value" id="tAlloc">-</div></div>
+      <div class="card stat"><div class="label">Remaining in reservoirs</div><div class="value" id="tRem">-</div></div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h2>Monitoring and alerts</h2>
+        <div id="alerts"></div>
+      </div>
+      <div class="card">
+        <h2>Repair queue</h2>
+        <div id="queueSummary"></div>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h2>Reservoir water levels</h2>
+        <div id="levels"></div>
+      </div>
+      <div class="card">
+        <h2>Priority-wise area status</h2>
+        <div id="priorities"></div>
+        <p class="note" id="policyNote"></p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Area-wise water allocation</h2>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Area</th><th>Priority</th><th>Demand (L)</th><th>Allocated (L)</th>
+            <th>Unmet demand (L)</th><th>Supply route (BFS)</th><th>Status</th></tr></thead>
+          <tbody id="allocationRows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Pipeline status</h2>
+      <div class="pipes" id="pipeCards"></div>
+      <p class="note">Press Fail to simulate a burst. The system finds the disconnected areas, re-allocates the water at once and adds a repair job to the queue.</p>
+    </div>
+  </section>
+
+  <!-- ================= MAP ================= -->
+  <section id="tab-map" class="tab hidden">
+    <div class="mapgrid">
+      <div class="card">
+        <h2>Network map <small>click an area, a reservoir or a pipe</small></h2>
+        <svg id="mapSvg" viewBox="0 0 900 540" role="img" aria-label="Map of reservoirs, areas and pipelines"></svg>
+        <div class="legend">
+          <span><i class="lg line"></i> working pipe</span>
+          <span><i class="lg line failed"></i> failed pipe</span>
+          <span><i class="lg line route"></i> supply route of the selected area</span>
+          <span><i class="lg ring ok"></i> supplied</span>
+          <span><i class="lg ring low"></i> low supply</span>
+          <span><i class="lg ring short"></i> shortage</span>
+          <span><i class="lg ring cut"></i> disconnected</span>
+        </div>
+      </div>
+      <div class="card" id="mapPanel"></div>
+    </div>
+  </section>
+
+  <!-- ================= RESERVOIRS ================= -->
+  <section id="tab-reservoirs" class="tab hidden">
+    <div class="card">
+      <h2>All reservoirs</h2>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Id</th><th>Name</th><th>Daily supply (L)</th><th>Left today (L)</th><th class="op-only"></th></tr></thead>
+          <tbody id="reservoirRows"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card op-only">
+      <h2 id="reservoirFormTitle">Add a reservoir</h2>
+      <form id="reservoirForm" class="form">
+        <label>Id <input id="rId" required maxlength="10" placeholder="R3"></label>
+        <label>Name <input id="rName" required maxlength="40" placeholder="East Reservoir"></label>
+        <label>Daily supply (litres) <input id="rCap" type="number" min="0" step="any" required placeholder="10000"></label>
+        <div class="buttons">
+          <button type="submit" class="primary" id="rSave">Add reservoir</button>
+          <button type="button" id="rCancel" class="hidden">Cancel</button>
+        </div>
+      </form>
+    </div>
+    <div class="card op-only">
+      <h2>Record today's supply reading</h2>
+      <p class="note" style="margin:0 0 12px">Type in the litres a reservoir can really give today. The water is shared out again straight away.</p>
+      <form id="supplyReadingForm" class="form">
+        <label>Reservoir <select id="srReservoir"></select></label>
+        <label>Supply today (litres) <input id="srValue" type="number" min="0" step="any" required placeholder="15000"></label>
+        <div class="buttons"><button type="submit" class="primary">Record reading</button></div>
+      </form>
+    </div>
+  </section>
+
+  <!-- (supply reading card is added to the reservoirs section below) -->
+
+  <!-- ================= AREAS ================= -->
+  <section id="tab-areas" class="tab hidden">
+    <div class="card">
+      <h2>All demand areas</h2>
+      <p class="note" style="margin:0 0 10px">A <b>critical institution</b> (hospital, fire station, school ...) is always served first.
+        A <b>residential area</b> is served after them, HIGH before NORMAL.</p>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Id</th><th>Name</th><th>Type</th><th>Details</th><th>Priority</th><th>Daily demand (L)</th><th>Allocated (L)</th><th class="op-only"></th></tr></thead>
+          <tbody id="areaRows"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card op-only">
+      <h2 id="areaFormTitle">Add a demand area</h2>
+      <form id="areaForm" class="form">
+        <label>Id <input id="aId" required maxlength="10" placeholder="A9"></label>
+        <label>Name <input id="aName" required maxlength="40" placeholder="New Colony"></label>
+        <label>Daily demand (litres) <input id="aDemand" type="number" min="0" step="any" required placeholder="3000"></label>
+        <label>Type
+          <select id="aType">
+            <option value="RESIDENTIAL">Residential area</option>
+            <option value="CRITICAL_INSTITUTION">Critical institution</option>
+          </select>
+        </label>
+        <label id="aPriorityBox">Priority
+          <select id="aPriority">
+            <option value="HIGH">HIGH</option>
+            <option value="NORMAL" selected>NORMAL</option>
+          </select>
+        </label>
+        <label id="aHouseholdsBox">Households <input id="aHouseholds" type="number" min="0" step="1" value="0"></label>
+        <label id="aInstitutionBox" class="hidden">Institution type
+          <select id="aInstitution">
+            <option>Hospital</option>
+            <option>Fire Station</option>
+            <option>School</option>
+            <option>Police Station</option>
+            <option>Other</option>
+          </select>
+        </label>
+        <div class="buttons">
+          <button type="submit" class="primary" id="aSave">Add area</button>
+          <button type="button" id="aCancel" class="hidden">Cancel</button>
+        </div>
+      </form>
+    </div>
+    <div class="card op-only">
+      <h2>Record today's demand reading</h2>
+      <p class="note" style="margin:0 0 12px">Type in the litres an area really needs today. Its type and priority stay the same.</p>
+      <form id="demandReadingForm" class="form">
+        <label>Area <select id="drArea"></select></label>
+        <label>Demand today (litres) <input id="drValue" type="number" min="0" step="any" required placeholder="3200"></label>
+        <div class="buttons"><button type="submit" class="primary">Record reading</button></div>
+      </form>
+    </div>
+  </section>
+
+  <!-- ================= PIPELINES ================= -->
+  <section id="tab-pipelines" class="tab hidden">
+    <div class="card">
+      <h2>All pipelines</h2>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Id</th><th>From</th><th>To</th><th>Status</th><th>Repair job</th><th class="op-only"></th></tr></thead>
+          <tbody id="pipelineRows"></tbody>
+        </table>
+      </div>
+      <p class="note">A failed pipeline is repaired from the Maintenance page, where jobs are handled in the order they were reported.</p>
+    </div>
+    <div class="card op-only">
+      <h2>Add a pipeline</h2>
+      <form id="pipelineForm" class="form">
+        <label>Id <input id="pId" required maxlength="10" placeholder="P10"></label>
+        <label>From <select id="pFrom"></select></label>
+        <label>To <select id="pTo"></select></label>
+        <div class="buttons"><button type="submit" class="primary">Add pipeline</button></div>
+      </form>
+    </div>
+  </section>
+
+  <!-- ================= MAINTENANCE ================= -->
+  <section id="tab-maintenance" class="tab hidden">
+    <div class="card">
+      <h2>Repair crew</h2>
+      <div id="currentJob"></div>
+      <p class="note">Jobs are handled <b>first in, first out</b>: the pipeline that failed first is repaired first.</p>
+    </div>
+    <div class="card">
+      <h2>Waiting queue <small id="queueCount"></small></h2>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Position</th><th>Job</th><th>Pipeline</th><th>Reported</th><th>Reported by</th></tr></thead>
+          <tbody id="queueRows"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Recently finished <small>(latest 20)</small></h2>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Job</th><th>Pipeline</th><th>Result</th><th>Reported</th><th>Finished</th></tr></thead>
+          <tbody id="historyRows"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= HISTORY ================= -->
+  <section id="tab-history" class="tab hidden">
+    <div class="card">
+      <div class="inline">
+        <h2>Allocation history <small id="allocCount"></small></h2>
+        <a class="btnlink small" href="/api/export/allocation.csv">Download all (CSV)</a>
+      </div>
+      <p class="note" style="margin:0 0 10px">A snapshot of who received how much water is saved after every change. Press Details to see each area.</p>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>#</th><th>Time</th><th>Day</th><th>Caused by</th><th>By</th><th>Allocated / available (L)</th><th>Unmet (L)</th><th>Cut off</th><th></th></tr></thead>
+          <tbody id="allocRows"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="inline">
+        <h2>Event log <small id="eventCount"></small></h2>
+        <a class="btnlink small" href="/api/export/events.csv">Download all (CSV)</a>
+      </div>
+      <p class="note" style="margin:0 0 10px">Every change is saved in the database with the time and the name of the user who did it.</p>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Time</th><th>Event</th><th>Details</th><th>By</th></tr></thead>
+          <tbody id="eventRows"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card op-only">
+      <h2>Database</h2>
+      <p class="note" style="margin:0 0 12px">All data is stored in the SQLite file <b>waterdb.sqlite</b>, so it is still there when the program is restarted.</p>
+      <button id="resetBtn" class="danger">Reset to sample data</button>
+    </div>
+  </section>
+
+  <!-- ================= ACCOUNT ================= -->
+  <section id="tab-account" class="tab hidden">
+    <div class="card">
+      <h2>My account</h2>
+      <table style="max-width:420px">
+        <tr><td class="sub">Name</td><td id="accName"></td></tr>
+        <tr><td class="sub">Username</td><td id="accUser"></td></tr>
+        <tr><td class="sub">Role</td><td id="accRole"></td></tr>
+      </table>
+      <p class="note" id="accNote"></p>
+    </div>
+    <div class="card">
+      <h2>Change password</h2>
+      <form id="passwordForm" class="stack">
+        <label>Current password <input id="oldPw" type="password" autocomplete="current-password" required></label>
+        <label>New password (6 or more characters) <input id="newPw" type="password" autocomplete="new-password" minlength="6" maxlength="64" required></label>
+        <label>Repeat the new password <input id="newPw2" type="password" autocomplete="new-password" required></label>
+        <div class="buttons"><button type="submit" class="primary">Change password</button></div>
+      </form>
+    </div>
+  </section>
+
+</main>
+
+<div id="toast" class="toast hidden"></div>
+<script src="app.js"></script>
+</body>
+</html>

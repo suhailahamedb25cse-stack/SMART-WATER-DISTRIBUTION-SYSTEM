@@ -1,0 +1,40 @@
+digraph Architecture {
+  rankdir=LR; nodesep=0.35; ranksep=0.8; fontname="Helvetica"; fontsize=20; labelloc=t;
+  label="Smart Water Distribution - system architecture\n";
+  node [shape=box style="rounded,filled" fontname="Helvetica" fontsize=12 fillcolor="#ffffff"];
+  edge [fontname="Helvetica" fontsize=10 color="#555555"];
+
+  subgraph cluster_browser { label="Browser (web/)"; style="rounded,filled"; fillcolor="#e8f5e9"; fontname="Helvetica-Bold";
+    login [label="login.html\nlogin.js"];
+    app   [label="index.html\napp.js  style.css\n(Dashboard, Map, Reservoirs,\nAreas, Pipelines, Maintenance,\nHistory, Account)"];
+  }
+  subgraph cluster_web { label="Web layer (Java, built-in HTTP server)"; style="rounded,filled"; fillcolor="#e3f2fd"; fontname="Helvetica-Bold";
+    main   [label="Main"];
+    server [label="Server\nFileHandler  ApiHandler\n(JSON, CSV)"];
+    auth   [label="Auth\nPBKDF2 password hashes\nsessions, lock-out, roles"];
+  }
+  subgraph cluster_service { label="Service layer"; style="rounded,filled"; fillcolor="#fff8e1"; fontname="Helvetica-Bold";
+    service [label="WaterService\nchecks input, saves, recalculates,\nwrites events and snapshots"];
+  }
+  subgraph cluster_domain { label="Domain (in memory)"; style="rounded,filled"; fillcolor="#f3e5f5"; fontname="Helvetica-Bold";
+    network [label="WaterNetwork\nadjacency list, BFS,\nPriorityQueue allocation"];
+    areas   [label="Reservoir  Pipeline\nDemandArea (CriticalInstitution,\nResidentialArea)"];
+    queue   [label="MaintenanceQueue\nArrayDeque (FIFO)"];
+    hist    [label="AllocationHistory\nArrayList"];
+  }
+  subgraph cluster_data { label="Data layer"; style="rounded,filled"; fillcolor="#ffebee"; fontname="Helvetica-Bold";
+    db     [label="Database\nJDBC, PreparedStatement"];
+    sqlite [shape=cylinder label="waterdb.sqlite\n(SQLite file)" fillcolor="#ffffff"];
+  }
+
+  login -> server [label="POST /api/login"];
+  app -> server [label="HTTP + JSON\n(cookie = session)"];
+  main -> server [label="starts"];
+  server -> auth [label="who is this?\nwhat is the role?"];
+  server -> service [label="valid request"];
+  service -> network; service -> queue; service -> hist;
+  network -> areas [label="contains"];
+  service -> db [label="save / load"];
+  auth -> db [label="users"];
+  db -> sqlite;
+}

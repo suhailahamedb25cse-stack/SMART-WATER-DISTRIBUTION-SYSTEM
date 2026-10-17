@@ -1,0 +1,68 @@
+digraph DB {
+  rankdir=LR; nodesep=0.5; ranksep=1.0; fontname="Helvetica"; fontsize=20; labelloc=t; splines=polyline;
+  label="Smart Water Distribution - database tables (SQLite)\n";
+  node [shape=plain fontname="Helvetica" fontsize=11]; edge [fontname="Helvetica" fontsize=10 color="#555555"];
+
+  reservoirs [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#e3f2fd">
+   <TR><TD COLSPAN="2" BGCOLOR="#90caf9"><B>reservoirs</B></TD></TR>
+   <TR><TD ALIGN="LEFT"><B>id</B></TD><TD ALIGN="LEFT">TEXT  PK</TD></TR>
+   <TR><TD ALIGN="LEFT">name</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+   <TR><TD ALIGN="LEFT">capacity</TD><TD ALIGN="LEFT">REAL  &gt;= 0</TD></TR></TABLE>>];
+  demand_areas [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#e8f5e9">
+   <TR><TD COLSPAN="2" BGCOLOR="#a5d6a7"><B>demand_areas</B></TD></TR>
+   <TR><TD ALIGN="LEFT"><B>id</B></TD><TD ALIGN="LEFT">TEXT  PK</TD></TR>
+   <TR><TD ALIGN="LEFT">name</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+   <TR><TD ALIGN="LEFT">daily_demand</TD><TD ALIGN="LEFT">REAL  &gt;= 0</TD></TR>
+   <TR><TD ALIGN="LEFT">priority</TD><TD ALIGN="LEFT">CRITICAL | HIGH | NORMAL</TD></TR>
+   <TR><TD ALIGN="LEFT">area_type</TD><TD ALIGN="LEFT">RESIDENTIAL | CRITICAL_INSTITUTION</TD></TR>
+   <TR><TD ALIGN="LEFT">institution_type</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+   <TR><TD ALIGN="LEFT">households</TD><TD ALIGN="LEFT">INTEGER</TD></TR></TABLE>>];
+  pipelines [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#fff8e1">
+   <TR><TD COLSPAN="2" BGCOLOR="#ffe082"><B>pipelines</B></TD></TR>
+   <TR><TD ALIGN="LEFT"><B>id</B></TD><TD ALIGN="LEFT">TEXT  PK</TD></TR>
+   <TR><TD ALIGN="LEFT">node1</TD><TD ALIGN="LEFT">TEXT  (reservoir or area id)</TD></TR>
+   <TR><TD ALIGN="LEFT">node2</TD><TD ALIGN="LEFT">TEXT  (reservoir or area id)</TD></TR>
+   <TR><TD ALIGN="LEFT">working</TD><TD ALIGN="LEFT">INTEGER  1 = working, 0 = failed</TD></TR></TABLE>>];
+  maintenance_requests [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#ffebee">
+   <TR><TD COLSPAN="2" BGCOLOR="#ef9a9a"><B>maintenance_requests</B></TD></TR>
+   <TR><TD ALIGN="LEFT"><B>id</B></TD><TD ALIGN="LEFT">INTEGER  PK, auto</TD></TR>
+   <TR><TD ALIGN="LEFT">pipeline_id</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+   <TR><TD ALIGN="LEFT">description</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+   <TR><TD ALIGN="LEFT">status</TD><TD ALIGN="LEFT">PENDING | IN_PROGRESS | DONE | CANCELLED</TD></TR>
+   <TR><TD ALIGN="LEFT">created_time, started_time,<BR ALIGN="LEFT"/>completed_time</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+   <TR><TD ALIGN="LEFT">created_by</TD><TD ALIGN="LEFT">TEXT</TD></TR></TABLE>>];
+  allocation_history [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#f3e5f5">
+   <TR><TD COLSPAN="2" BGCOLOR="#ce93d8"><B>allocation_history</B></TD></TR>
+   <TR><TD ALIGN="LEFT"><B>id</B></TD><TD ALIGN="LEFT">INTEGER  PK, auto</TD></TR>
+   <TR><TD ALIGN="LEFT">run_time, day</TD><TD ALIGN="LEFT">TEXT, INTEGER</TD></TR>
+   <TR><TD ALIGN="LEFT">trigger_event, user_name</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+   <TR><TD ALIGN="LEFT">total_available,<BR ALIGN="LEFT"/>total_allocated, total_unmet</TD><TD ALIGN="LEFT">REAL</TD></TR>
+   <TR><TD ALIGN="LEFT">disconnected_areas</TD><TD ALIGN="LEFT">INTEGER</TD></TR></TABLE>>];
+  allocation_details [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#f3e5f5">
+   <TR><TD COLSPAN="2" BGCOLOR="#ce93d8"><B>allocation_details</B></TD></TR>
+   <TR><TD ALIGN="LEFT">record_id</TD><TD ALIGN="LEFT">INTEGER  (FK)</TD></TR>
+   <TR><TD ALIGN="LEFT">area_id, area_name, priority</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+   <TR><TD ALIGN="LEFT">demand, allocated</TD><TD ALIGN="LEFT">REAL</TD></TR>
+   <TR><TD ALIGN="LEFT">status</TD><TD ALIGN="LEFT">TEXT</TD></TR></TABLE>>];
+  events [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#eeeeee">
+   <TR><TD COLSPAN="2" BGCOLOR="#bdbdbd"><B>events</B></TD></TR>
+   <TR><TD ALIGN="LEFT"><B>id</B></TD><TD ALIGN="LEFT">INTEGER  PK, auto</TD></TR>
+   <TR><TD ALIGN="LEFT">event_time</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+   <TR><TD ALIGN="LEFT">event_type, details</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+   <TR><TD ALIGN="LEFT">user_name</TD><TD ALIGN="LEFT">TEXT</TD></TR></TABLE>>];
+  users [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#eeeeee">
+   <TR><TD COLSPAN="2" BGCOLOR="#bdbdbd"><B>users</B></TD></TR>
+   <TR><TD ALIGN="LEFT"><B>username</B></TD><TD ALIGN="LEFT">TEXT  PK</TD></TR>
+   <TR><TD ALIGN="LEFT">full_name</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+   <TR><TD ALIGN="LEFT">role</TD><TD ALIGN="LEFT">OPERATOR | VIEWER</TD></TR>
+   <TR><TD ALIGN="LEFT">salt, password_hash</TD><TD ALIGN="LEFT">TEXT  (never the password)</TD></TR></TABLE>>];
+  settings [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="#eeeeee">
+   <TR><TD COLSPAN="2" BGCOLOR="#bdbdbd"><B>settings</B></TD></TR>
+   <TR><TD ALIGN="LEFT"><B>key</B></TD><TD ALIGN="LEFT">TEXT  PK  (e.g. day)</TD></TR>
+   <TR><TD ALIGN="LEFT">value</TD><TD ALIGN="LEFT">TEXT</TD></TR></TABLE>>];
+
+  pipelines -> reservoirs [label="node1 / node2" style=dashed arrowhead=open];
+  pipelines -> demand_areas [label="node1 / node2" style=dashed arrowhead=open];
+  maintenance_requests -> pipelines [label="pipeline_id" style=dashed arrowhead=open];
+  allocation_details -> allocation_history [label="record_id  (many to one)" arrowhead=crow dir=back];
+}

@@ -1,0 +1,75 @@
+=== Smart Water Distribution - tests ===
+
+1. The sample town
+  PASS  2 reservoirs, 8 areas
+  PASS  14 pipelines (the brief asks for 12 to 15)
+  PASS  normal day: every area fully supplied
+  PASS  normal day: 27,500 L allocated of 30,000 L
+  PASS  normal day: nothing disconnected
+
+2. Connectivity (BFS) after failures
+  PASS  one failure (P1): the loops keep A1 connected
+  PASS  one failure (P3): hospital A3 still reachable by its second route
+  PASS  two failures (P3 + P10): hospital A3 is disconnected
+  PASS  a disconnected area receives no water
+  PASS  status of the cut-off hospital is DISCONNECTED
+  PASS  repairing P10 reconnects the hospital
+  PASS  fire station A7 cut off when P7, P11 and P14 fail
+  PASS  North Reservoir cut off (P1 + P2): the other side still reaches every area
+  PASS  ... but only South's 12,000 L can be used
+  PASS  BFS from R1 reaches all 8 areas
+  PASS  BFS from an unknown reservoir reaches nothing
+
+3. Supply paths (BFS shows the route)
+  PASS  every path starts at a reservoir, ends at its area, and every step is a working pipe
+  PASS  R1 to A3 takes the shortest route (3 pipes: R1, A1, A3)
+  PASS  after P3 fails the route changes (R1, A2, A4, A3)
+  PASS  a route never uses a failed pipeline
+  PASS  no route to a cut-off area (BFS gives null)
+  PASS  findSupplyPath is empty for a cut-off area
+
+4. Priority allocation
+  PASS  dry reservoir (R1 = 0 L): both critical institutions fully supplied
+  PASS  dry reservoir: HIGH area A1 is fully supplied, A5 gets the 1,000 L that is left (South has only 12,000 L)
+  PASS  dry reservoir: the NORMAL areas get nothing, because the water ran out before their turn
+  PASS  dry reservoir: R1 gives out nothing
+  PASS  partial allocation (R1 = 9,000 L): 6,500 L of demand is left unmet
+  PASS  partial allocation: A4 gets 2,500 of 3,500 L
+  PASS  partial allocation: A6 and A8 get nothing
+  PASS  partial allocation: A4 status is LOW SUPPLY
+  PASS  partial allocation: A6 status is SHORTAGE
+  PASS  no water at all: nothing allocated, all demand unmet
+  PASS  the reservoirs that supplied an area add up to what it received
+  PASS  recalculating twice gives the same answer (nothing is counted twice)
+
+5. Inheritance, overriding and the policy
+  PASS  CriticalInstitution overrides allocationPriority() = 0
+  PASS  ResidentialArea HIGH = 1, NORMAL = 2
+  PASS  the label comes from the number: CRITICAL, HIGH, NORMAL
+  PASS  each child describes itself differently
+  PASS  each child reports its own type
+  PASS  a residential area cannot be CRITICAL
+  PASS  withDemand() keeps the same kind of area (polymorphism)
+  PASS  policy: a critical request goes before a high one
+  PASS  policy: same priority - the earlier arrival goes first
+  PASS  a reservoir never gives more than it holds
+
+6. Repair queue (first in, first out)
+  PASS  3 jobs waiting
+  PASS  startNext() takes the OLDEST job (P7)
+  PASS  a second job cannot start while one is in progress
+  PASS  completeCurrent() marks it DONE and frees the crew
+  PASS  the next job is P3, then P1 (same order as they were reported)
+  PASS  a waiting job can be cancelled (pipeline deleted)
+  PASS  history keeps the newest first
+  PASS  starting a job from an empty queue is refused
+
+7. 300 random scenarios (random failures and supplies)
+  PASS  a reservoir never gives out more than its supply (300 runs)
+  PASS  allocated + unmet = demand for every area, and disconnected areas get nothing (300 runs)
+  PASS  water is never left unused while a reachable area is short (300 runs)
+  PASS  lower priority is never served before a higher priority it could have helped (300 runs)
+
+=======================================
+Passed: 56   Failed: 0
+ALL TESTS PASSED
